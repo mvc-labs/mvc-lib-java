@@ -1,0 +1,2301 @@
+/*
+ * Copyright 2013 Ken Sedgwick
+ * Copyright 2014 Andreas Schildbach
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.mvcj.crypto;
+
+import com.google.common.base.Stopwatch;
+import com.showpay.showmoneywalletsdk.org.mvcj.core.Sha256Hash;
+import com.showpay.showmoneywalletsdk.org.mvcj.core.Utils;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import static com.showpay.showmoneywalletsdk.org.mvcj.core.Utils.HEX;
+
+/**
+ * A MnemonicCode object may be used to convert between binary seed values and
+ * specification</a>
+ */
+
+public class MnemonicCode {
+    private static final Logger log = LoggerFactory.getLogger(MnemonicCode.class);
+
+    private ArrayList<String> wordList;
+    private static String wordStrs = "abandon\n" +
+            "ability\n" +
+            "able\n" +
+            "about\n" +
+            "above\n" +
+            "absent\n" +
+            "absorb\n" +
+            "abstract\n" +
+            "absurd\n" +
+            "abuse\n" +
+            "access\n" +
+            "accident\n" +
+            "account\n" +
+            "accuse\n" +
+            "achieve\n" +
+            "acid\n" +
+            "acoustic\n" +
+            "acquire\n" +
+            "across\n" +
+            "act\n" +
+            "action\n" +
+            "actor\n" +
+            "actress\n" +
+            "actual\n" +
+            "adapt\n" +
+            "add\n" +
+            "addict\n" +
+            "address\n" +
+            "adjust\n" +
+            "admit\n" +
+            "adult\n" +
+            "advance\n" +
+            "advice\n" +
+            "aerobic\n" +
+            "affair\n" +
+            "afford\n" +
+            "afraid\n" +
+            "again\n" +
+            "age\n" +
+            "agent\n" +
+            "agree\n" +
+            "ahead\n" +
+            "aim\n" +
+            "air\n" +
+            "airport\n" +
+            "aisle\n" +
+            "alarm\n" +
+            "album\n" +
+            "alcohol\n" +
+            "alert\n" +
+            "alien\n" +
+            "all\n" +
+            "alley\n" +
+            "allow\n" +
+            "almost\n" +
+            "alone\n" +
+            "alpha\n" +
+            "already\n" +
+            "also\n" +
+            "alter\n" +
+            "always\n" +
+            "amateur\n" +
+            "amazing\n" +
+            "among\n" +
+            "amount\n" +
+            "amused\n" +
+            "analyst\n" +
+            "anchor\n" +
+            "ancient\n" +
+            "anger\n" +
+            "angle\n" +
+            "angry\n" +
+            "animal\n" +
+            "ankle\n" +
+            "announce\n" +
+            "annual\n" +
+            "another\n" +
+            "answer\n" +
+            "antenna\n" +
+            "antique\n" +
+            "anxiety\n" +
+            "any\n" +
+            "apart\n" +
+            "apology\n" +
+            "appear\n" +
+            "apple\n" +
+            "approve\n" +
+            "april\n" +
+            "arch\n" +
+            "arctic\n" +
+            "area\n" +
+            "arena\n" +
+            "argue\n" +
+            "arm\n" +
+            "armed\n" +
+            "armor\n" +
+            "army\n" +
+            "around\n" +
+            "arrange\n" +
+            "arrest\n" +
+            "arrive\n" +
+            "arrow\n" +
+            "art\n" +
+            "artefact\n" +
+            "artist\n" +
+            "artwork\n" +
+            "ask\n" +
+            "aspect\n" +
+            "assault\n" +
+            "asset\n" +
+            "assist\n" +
+            "assume\n" +
+            "asthma\n" +
+            "athlete\n" +
+            "atom\n" +
+            "attack\n" +
+            "attend\n" +
+            "attitude\n" +
+            "attract\n" +
+            "auction\n" +
+            "audit\n" +
+            "august\n" +
+            "aunt\n" +
+            "author\n" +
+            "auto\n" +
+            "autumn\n" +
+            "average\n" +
+            "avocado\n" +
+            "avoid\n" +
+            "awake\n" +
+            "aware\n" +
+            "away\n" +
+            "awesome\n" +
+            "awful\n" +
+            "awkward\n" +
+            "axis\n" +
+            "baby\n" +
+            "bachelor\n" +
+            "bacon\n" +
+            "badge\n" +
+            "bag\n" +
+            "balance\n" +
+            "balcony\n" +
+            "ball\n" +
+            "bamboo\n" +
+            "banana\n" +
+            "banner\n" +
+            "bar\n" +
+            "barely\n" +
+            "bargain\n" +
+            "barrel\n" +
+            "base\n" +
+            "basic\n" +
+            "basket\n" +
+            "battle\n" +
+            "beach\n" +
+            "bean\n" +
+            "beauty\n" +
+            "because\n" +
+            "become\n" +
+            "beef\n" +
+            "before\n" +
+            "begin\n" +
+            "behave\n" +
+            "behind\n" +
+            "believe\n" +
+            "below\n" +
+            "belt\n" +
+            "bench\n" +
+            "benefit\n" +
+            "best\n" +
+            "betray\n" +
+            "better\n" +
+            "between\n" +
+            "beyond\n" +
+            "bicycle\n" +
+            "bid\n" +
+            "bike\n" +
+            "bind\n" +
+            "biology\n" +
+            "bird\n" +
+            "birth\n" +
+            "bitter\n" +
+            "black\n" +
+            "blade\n" +
+            "blame\n" +
+            "blanket\n" +
+            "blast\n" +
+            "bleak\n" +
+            "bless\n" +
+            "blind\n" +
+            "blood\n" +
+            "blossom\n" +
+            "blouse\n" +
+            "blue\n" +
+            "blur\n" +
+            "blush\n" +
+            "board\n" +
+            "boat\n" +
+            "body\n" +
+            "boil\n" +
+            "bomb\n" +
+            "bone\n" +
+            "bonus\n" +
+            "book\n" +
+            "boost\n" +
+            "border\n" +
+            "boring\n" +
+            "borrow\n" +
+            "boss\n" +
+            "bottom\n" +
+            "bounce\n" +
+            "box\n" +
+            "boy\n" +
+            "bracket\n" +
+            "brain\n" +
+            "brand\n" +
+            "brass\n" +
+            "brave\n" +
+            "bread\n" +
+            "breeze\n" +
+            "brick\n" +
+            "bridge\n" +
+            "brief\n" +
+            "bright\n" +
+            "bring\n" +
+            "brisk\n" +
+            "broccoli\n" +
+            "broken\n" +
+            "bronze\n" +
+            "broom\n" +
+            "brother\n" +
+            "brown\n" +
+            "brush\n" +
+            "bubble\n" +
+            "buddy\n" +
+            "budget\n" +
+            "buffalo\n" +
+            "build\n" +
+            "bulb\n" +
+            "bulk\n" +
+            "bullet\n" +
+            "bundle\n" +
+            "bunker\n" +
+            "burden\n" +
+            "burger\n" +
+            "burst\n" +
+            "bus\n" +
+            "business\n" +
+            "busy\n" +
+            "butter\n" +
+            "buyer\n" +
+            "buzz\n" +
+            "cabbage\n" +
+            "cabin\n" +
+            "cable\n" +
+            "cactus\n" +
+            "cage\n" +
+            "cake\n" +
+            "call\n" +
+            "calm\n" +
+            "camera\n" +
+            "camp\n" +
+            "can\n" +
+            "canal\n" +
+            "cancel\n" +
+            "candy\n" +
+            "cannon\n" +
+            "canoe\n" +
+            "canvas\n" +
+            "canyon\n" +
+            "capable\n" +
+            "capital\n" +
+            "captain\n" +
+            "car\n" +
+            "carbon\n" +
+            "card\n" +
+            "cargo\n" +
+            "carpet\n" +
+            "carry\n" +
+            "cart\n" +
+            "case\n" +
+            "cash\n" +
+            "casino\n" +
+            "castle\n" +
+            "casual\n" +
+            "cat\n" +
+            "catalog\n" +
+            "catch\n" +
+            "category\n" +
+            "cattle\n" +
+            "caught\n" +
+            "cause\n" +
+            "caution\n" +
+            "cave\n" +
+            "ceiling\n" +
+            "celery\n" +
+            "cement\n" +
+            "census\n" +
+            "century\n" +
+            "cereal\n" +
+            "certain\n" +
+            "chair\n" +
+            "chalk\n" +
+            "champion\n" +
+            "change\n" +
+            "chaos\n" +
+            "chapter\n" +
+            "charge\n" +
+            "chase\n" +
+            "chat\n" +
+            "cheap\n" +
+            "check\n" +
+            "cheese\n" +
+            "chef\n" +
+            "cherry\n" +
+            "chest\n" +
+            "chicken\n" +
+            "chief\n" +
+            "child\n" +
+            "chimney\n" +
+            "choice\n" +
+            "choose\n" +
+            "chronic\n" +
+            "chuckle\n" +
+            "chunk\n" +
+            "churn\n" +
+            "cigar\n" +
+            "cinnamon\n" +
+            "circle\n" +
+            "citizen\n" +
+            "city\n" +
+            "civil\n" +
+            "claim\n" +
+            "clap\n" +
+            "clarify\n" +
+            "claw\n" +
+            "clay\n" +
+            "clean\n" +
+            "clerk\n" +
+            "clever\n" +
+            "click\n" +
+            "client\n" +
+            "cliff\n" +
+            "climb\n" +
+            "clinic\n" +
+            "clip\n" +
+            "clock\n" +
+            "clog\n" +
+            "close\n" +
+            "cloth\n" +
+            "cloud\n" +
+            "clown\n" +
+            "club\n" +
+            "clump\n" +
+            "cluster\n" +
+            "clutch\n" +
+            "coach\n" +
+            "coast\n" +
+            "coconut\n" +
+            "code\n" +
+            "coffee\n" +
+            "coil\n" +
+            "coin\n" +
+            "collect\n" +
+            "color\n" +
+            "column\n" +
+            "combine\n" +
+            "come\n" +
+            "comfort\n" +
+            "comic\n" +
+            "common\n" +
+            "company\n" +
+            "concert\n" +
+            "conduct\n" +
+            "confirm\n" +
+            "congress\n" +
+            "connect\n" +
+            "consider\n" +
+            "control\n" +
+            "convince\n" +
+            "cook\n" +
+            "cool\n" +
+            "copper\n" +
+            "copy\n" +
+            "coral\n" +
+            "core\n" +
+            "corn\n" +
+            "correct\n" +
+            "cost\n" +
+            "cotton\n" +
+            "couch\n" +
+            "country\n" +
+            "couple\n" +
+            "course\n" +
+            "cousin\n" +
+            "cover\n" +
+            "coyote\n" +
+            "crack\n" +
+            "cradle\n" +
+            "craft\n" +
+            "cram\n" +
+            "crane\n" +
+            "crash\n" +
+            "crater\n" +
+            "crawl\n" +
+            "crazy\n" +
+            "cream\n" +
+            "credit\n" +
+            "creek\n" +
+            "crew\n" +
+            "cricket\n" +
+            "crime\n" +
+            "crisp\n" +
+            "critic\n" +
+            "crop\n" +
+            "cross\n" +
+            "crouch\n" +
+            "crowd\n" +
+            "crucial\n" +
+            "cruel\n" +
+            "cruise\n" +
+            "crumble\n" +
+            "crunch\n" +
+            "crush\n" +
+            "cry\n" +
+            "crystal\n" +
+            "cube\n" +
+            "culture\n" +
+            "cup\n" +
+            "cupboard\n" +
+            "curious\n" +
+            "current\n" +
+            "curtain\n" +
+            "curve\n" +
+            "cushion\n" +
+            "custom\n" +
+            "cute\n" +
+            "cycle\n" +
+            "dad\n" +
+            "damage\n" +
+            "damp\n" +
+            "dance\n" +
+            "danger\n" +
+            "daring\n" +
+            "dash\n" +
+            "daughter\n" +
+            "dawn\n" +
+            "day\n" +
+            "deal\n" +
+            "debate\n" +
+            "debris\n" +
+            "decade\n" +
+            "december\n" +
+            "decide\n" +
+            "decline\n" +
+            "decorate\n" +
+            "decrease\n" +
+            "deer\n" +
+            "defense\n" +
+            "define\n" +
+            "defy\n" +
+            "degree\n" +
+            "delay\n" +
+            "deliver\n" +
+            "demand\n" +
+            "demise\n" +
+            "denial\n" +
+            "dentist\n" +
+            "deny\n" +
+            "depart\n" +
+            "depend\n" +
+            "deposit\n" +
+            "depth\n" +
+            "deputy\n" +
+            "derive\n" +
+            "describe\n" +
+            "desert\n" +
+            "design\n" +
+            "desk\n" +
+            "despair\n" +
+            "destroy\n" +
+            "detail\n" +
+            "detect\n" +
+            "develop\n" +
+            "device\n" +
+            "devote\n" +
+            "diagram\n" +
+            "dial\n" +
+            "diamond\n" +
+            "diary\n" +
+            "dice\n" +
+            "diesel\n" +
+            "diet\n" +
+            "differ\n" +
+            "digital\n" +
+            "dignity\n" +
+            "dilemma\n" +
+            "dinner\n" +
+            "dinosaur\n" +
+            "direct\n" +
+            "dirt\n" +
+            "disagree\n" +
+            "discover\n" +
+            "disease\n" +
+            "dish\n" +
+            "dismiss\n" +
+            "disorder\n" +
+            "display\n" +
+            "distance\n" +
+            "divert\n" +
+            "divide\n" +
+            "divorce\n" +
+            "dizzy\n" +
+            "doctor\n" +
+            "document\n" +
+            "dog\n" +
+            "doll\n" +
+            "dolphin\n" +
+            "domain\n" +
+            "donate\n" +
+            "donkey\n" +
+            "donor\n" +
+            "door\n" +
+            "dose\n" +
+            "double\n" +
+            "dove\n" +
+            "draft\n" +
+            "dragon\n" +
+            "drama\n" +
+            "drastic\n" +
+            "draw\n" +
+            "dream\n" +
+            "dress\n" +
+            "drift\n" +
+            "drill\n" +
+            "drink\n" +
+            "drip\n" +
+            "drive\n" +
+            "drop\n" +
+            "drum\n" +
+            "dry\n" +
+            "duck\n" +
+            "dumb\n" +
+            "dune\n" +
+            "during\n" +
+            "dust\n" +
+            "dutch\n" +
+            "duty\n" +
+            "dwarf\n" +
+            "dynamic\n" +
+            "eager\n" +
+            "eagle\n" +
+            "early\n" +
+            "earn\n" +
+            "earth\n" +
+            "easily\n" +
+            "east\n" +
+            "easy\n" +
+            "echo\n" +
+            "ecology\n" +
+            "economy\n" +
+            "edge\n" +
+            "edit\n" +
+            "educate\n" +
+            "effort\n" +
+            "egg\n" +
+            "eight\n" +
+            "either\n" +
+            "elbow\n" +
+            "elder\n" +
+            "electric\n" +
+            "elegant\n" +
+            "element\n" +
+            "elephant\n" +
+            "elevator\n" +
+            "elite\n" +
+            "else\n" +
+            "embark\n" +
+            "embody\n" +
+            "embrace\n" +
+            "emerge\n" +
+            "emotion\n" +
+            "employ\n" +
+            "empower\n" +
+            "empty\n" +
+            "enable\n" +
+            "enact\n" +
+            "end\n" +
+            "endless\n" +
+            "endorse\n" +
+            "enemy\n" +
+            "energy\n" +
+            "enforce\n" +
+            "engage\n" +
+            "engine\n" +
+            "enhance\n" +
+            "enjoy\n" +
+            "enlist\n" +
+            "enough\n" +
+            "enrich\n" +
+            "enroll\n" +
+            "ensure\n" +
+            "enter\n" +
+            "entire\n" +
+            "entry\n" +
+            "envelope\n" +
+            "episode\n" +
+            "equal\n" +
+            "equip\n" +
+            "era\n" +
+            "erase\n" +
+            "erode\n" +
+            "erosion\n" +
+            "error\n" +
+            "erupt\n" +
+            "escape\n" +
+            "essay\n" +
+            "essence\n" +
+            "estate\n" +
+            "eternal\n" +
+            "ethics\n" +
+            "evidence\n" +
+            "evil\n" +
+            "evoke\n" +
+            "evolve\n" +
+            "exact\n" +
+            "example\n" +
+            "excess\n" +
+            "exchange\n" +
+            "excite\n" +
+            "exclude\n" +
+            "excuse\n" +
+            "execute\n" +
+            "exercise\n" +
+            "exhaust\n" +
+            "exhibit\n" +
+            "exile\n" +
+            "exist\n" +
+            "exit\n" +
+            "exotic\n" +
+            "expand\n" +
+            "expect\n" +
+            "expire\n" +
+            "explain\n" +
+            "expose\n" +
+            "express\n" +
+            "extend\n" +
+            "extra\n" +
+            "eye\n" +
+            "eyebrow\n" +
+            "fabric\n" +
+            "face\n" +
+            "faculty\n" +
+            "fade\n" +
+            "faint\n" +
+            "faith\n" +
+            "fall\n" +
+            "false\n" +
+            "fame\n" +
+            "family\n" +
+            "famous\n" +
+            "fan\n" +
+            "fancy\n" +
+            "fantasy\n" +
+            "farm\n" +
+            "fashion\n" +
+            "fat\n" +
+            "fatal\n" +
+            "father\n" +
+            "fatigue\n" +
+            "fault\n" +
+            "favorite\n" +
+            "feature\n" +
+            "february\n" +
+            "federal\n" +
+            "fee\n" +
+            "feed\n" +
+            "feel\n" +
+            "female\n" +
+            "fence\n" +
+            "festival\n" +
+            "fetch\n" +
+            "fever\n" +
+            "few\n" +
+            "fiber\n" +
+            "fiction\n" +
+            "field\n" +
+            "figure\n" +
+            "file\n" +
+            "film\n" +
+            "filter\n" +
+            "final\n" +
+            "find\n" +
+            "fine\n" +
+            "finger\n" +
+            "finish\n" +
+            "fire\n" +
+            "firm\n" +
+            "first\n" +
+            "fiscal\n" +
+            "fish\n" +
+            "fit\n" +
+            "fitness\n" +
+            "fix\n" +
+            "flag\n" +
+            "flame\n" +
+            "flash\n" +
+            "flat\n" +
+            "flavor\n" +
+            "flee\n" +
+            "flight\n" +
+            "flip\n" +
+            "float\n" +
+            "flock\n" +
+            "floor\n" +
+            "flower\n" +
+            "fluid\n" +
+            "flush\n" +
+            "fly\n" +
+            "foam\n" +
+            "focus\n" +
+            "fog\n" +
+            "foil\n" +
+            "fold\n" +
+            "follow\n" +
+            "food\n" +
+            "foot\n" +
+            "force\n" +
+            "forest\n" +
+            "forget\n" +
+            "fork\n" +
+            "fortune\n" +
+            "forum\n" +
+            "forward\n" +
+            "fossil\n" +
+            "foster\n" +
+            "found\n" +
+            "fox\n" +
+            "fragile\n" +
+            "frame\n" +
+            "frequent\n" +
+            "fresh\n" +
+            "friend\n" +
+            "fringe\n" +
+            "frog\n" +
+            "front\n" +
+            "frost\n" +
+            "frown\n" +
+            "frozen\n" +
+            "fruit\n" +
+            "fuel\n" +
+            "fun\n" +
+            "funny\n" +
+            "furnace\n" +
+            "fury\n" +
+            "future\n" +
+            "gadget\n" +
+            "gain\n" +
+            "galaxy\n" +
+            "gallery\n" +
+            "game\n" +
+            "gap\n" +
+            "garage\n" +
+            "garbage\n" +
+            "garden\n" +
+            "garlic\n" +
+            "garment\n" +
+            "gas\n" +
+            "gasp\n" +
+            "gate\n" +
+            "gather\n" +
+            "gauge\n" +
+            "gaze\n" +
+            "general\n" +
+            "genius\n" +
+            "genre\n" +
+            "gentle\n" +
+            "genuine\n" +
+            "gesture\n" +
+            "ghost\n" +
+            "giant\n" +
+            "gift\n" +
+            "giggle\n" +
+            "ginger\n" +
+            "giraffe\n" +
+            "girl\n" +
+            "give\n" +
+            "glad\n" +
+            "glance\n" +
+            "glare\n" +
+            "glass\n" +
+            "glide\n" +
+            "glimpse\n" +
+            "globe\n" +
+            "gloom\n" +
+            "glory\n" +
+            "glove\n" +
+            "glow\n" +
+            "glue\n" +
+            "goat\n" +
+            "goddess\n" +
+            "gold\n" +
+            "good\n" +
+            "goose\n" +
+            "gorilla\n" +
+            "gospel\n" +
+            "gossip\n" +
+            "govern\n" +
+            "gown\n" +
+            "grab\n" +
+            "grace\n" +
+            "grain\n" +
+            "grant\n" +
+            "grape\n" +
+            "grass\n" +
+            "gravity\n" +
+            "great\n" +
+            "green\n" +
+            "grid\n" +
+            "grief\n" +
+            "grit\n" +
+            "grocery\n" +
+            "group\n" +
+            "grow\n" +
+            "grunt\n" +
+            "guard\n" +
+            "guess\n" +
+            "guide\n" +
+            "guilt\n" +
+            "guitar\n" +
+            "gun\n" +
+            "gym\n" +
+            "habit\n" +
+            "hair\n" +
+            "half\n" +
+            "hammer\n" +
+            "hamster\n" +
+            "hand\n" +
+            "happy\n" +
+            "harbor\n" +
+            "hard\n" +
+            "harsh\n" +
+            "harvest\n" +
+            "hat\n" +
+            "have\n" +
+            "hawk\n" +
+            "hazard\n" +
+            "head\n" +
+            "health\n" +
+            "heart\n" +
+            "heavy\n" +
+            "hedgehog\n" +
+            "height\n" +
+            "hello\n" +
+            "helmet\n" +
+            "help\n" +
+            "hen\n" +
+            "hero\n" +
+            "hidden\n" +
+            "high\n" +
+            "hill\n" +
+            "hint\n" +
+            "hip\n" +
+            "hire\n" +
+            "history\n" +
+            "hobby\n" +
+            "hockey\n" +
+            "hold\n" +
+            "hole\n" +
+            "holiday\n" +
+            "hollow\n" +
+            "home\n" +
+            "honey\n" +
+            "hood\n" +
+            "hope\n" +
+            "horn\n" +
+            "horror\n" +
+            "horse\n" +
+            "hospital\n" +
+            "host\n" +
+            "hotel\n" +
+            "hour\n" +
+            "hover\n" +
+            "hub\n" +
+            "huge\n" +
+            "human\n" +
+            "humble\n" +
+            "humor\n" +
+            "hundred\n" +
+            "hungry\n" +
+            "hunt\n" +
+            "hurdle\n" +
+            "hurry\n" +
+            "hurt\n" +
+            "husband\n" +
+            "hybrid\n" +
+            "ice\n" +
+            "icon\n" +
+            "idea\n" +
+            "identify\n" +
+            "idle\n" +
+            "ignore\n" +
+            "ill\n" +
+            "illegal\n" +
+            "illness\n" +
+            "image\n" +
+            "imitate\n" +
+            "immense\n" +
+            "immune\n" +
+            "impact\n" +
+            "impose\n" +
+            "improve\n" +
+            "impulse\n" +
+            "inch\n" +
+            "include\n" +
+            "income\n" +
+            "increase\n" +
+            "index\n" +
+            "indicate\n" +
+            "indoor\n" +
+            "industry\n" +
+            "infant\n" +
+            "inflict\n" +
+            "inform\n" +
+            "inhale\n" +
+            "inherit\n" +
+            "initial\n" +
+            "inject\n" +
+            "injury\n" +
+            "inmate\n" +
+            "inner\n" +
+            "innocent\n" +
+            "input\n" +
+            "inquiry\n" +
+            "insane\n" +
+            "insect\n" +
+            "inside\n" +
+            "inspire\n" +
+            "install\n" +
+            "intact\n" +
+            "interest\n" +
+            "into\n" +
+            "invest\n" +
+            "invite\n" +
+            "involve\n" +
+            "iron\n" +
+            "island\n" +
+            "isolate\n" +
+            "issue\n" +
+            "item\n" +
+            "ivory\n" +
+            "jacket\n" +
+            "jaguar\n" +
+            "jar\n" +
+            "jazz\n" +
+            "jealous\n" +
+            "jeans\n" +
+            "jelly\n" +
+            "jewel\n" +
+            "job\n" +
+            "join\n" +
+            "joke\n" +
+            "journey\n" +
+            "joy\n" +
+            "judge\n" +
+            "juice\n" +
+            "jump\n" +
+            "jungle\n" +
+            "junior\n" +
+            "junk\n" +
+            "just\n" +
+            "kangaroo\n" +
+            "keen\n" +
+            "keep\n" +
+            "ketchup\n" +
+            "key\n" +
+            "kick\n" +
+            "kid\n" +
+            "kidney\n" +
+            "kind\n" +
+            "kingdom\n" +
+            "kiss\n" +
+            "kit\n" +
+            "kitchen\n" +
+            "kite\n" +
+            "kitten\n" +
+            "kiwi\n" +
+            "knee\n" +
+            "knife\n" +
+            "knock\n" +
+            "know\n" +
+            "lab\n" +
+            "label\n" +
+            "labor\n" +
+            "ladder\n" +
+            "lady\n" +
+            "lake\n" +
+            "lamp\n" +
+            "language\n" +
+            "laptop\n" +
+            "large\n" +
+            "later\n" +
+            "latin\n" +
+            "laugh\n" +
+            "laundry\n" +
+            "lava\n" +
+            "law\n" +
+            "lawn\n" +
+            "lawsuit\n" +
+            "layer\n" +
+            "lazy\n" +
+            "leader\n" +
+            "leaf\n" +
+            "learn\n" +
+            "leave\n" +
+            "lecture\n" +
+            "left\n" +
+            "leg\n" +
+            "legal\n" +
+            "legend\n" +
+            "leisure\n" +
+            "lemon\n" +
+            "lend\n" +
+            "length\n" +
+            "lens\n" +
+            "leopard\n" +
+            "lesson\n" +
+            "letter\n" +
+            "level\n" +
+            "liar\n" +
+            "liberty\n" +
+            "library\n" +
+            "license\n" +
+            "life\n" +
+            "lift\n" +
+            "light\n" +
+            "like\n" +
+            "limb\n" +
+            "limit\n" +
+            "link\n" +
+            "lion\n" +
+            "liquid\n" +
+            "list\n" +
+            "little\n" +
+            "live\n" +
+            "lizard\n" +
+            "load\n" +
+            "loan\n" +
+            "lobster\n" +
+            "local\n" +
+            "lock\n" +
+            "logic\n" +
+            "lonely\n" +
+            "long\n" +
+            "loop\n" +
+            "lottery\n" +
+            "loud\n" +
+            "lounge\n" +
+            "love\n" +
+            "loyal\n" +
+            "lucky\n" +
+            "luggage\n" +
+            "lumber\n" +
+            "lunar\n" +
+            "lunch\n" +
+            "luxury\n" +
+            "lyrics\n" +
+            "machine\n" +
+            "mad\n" +
+            "magic\n" +
+            "magnet\n" +
+            "maid\n" +
+            "mail\n" +
+            "main\n" +
+            "major\n" +
+            "make\n" +
+            "mammal\n" +
+            "man\n" +
+            "manage\n" +
+            "mandate\n" +
+            "mango\n" +
+            "mansion\n" +
+            "manual\n" +
+            "maple\n" +
+            "marble\n" +
+            "march\n" +
+            "margin\n" +
+            "marine\n" +
+            "market\n" +
+            "marriage\n" +
+            "mask\n" +
+            "mass\n" +
+            "master\n" +
+            "match\n" +
+            "material\n" +
+            "math\n" +
+            "matrix\n" +
+            "matter\n" +
+            "maximum\n" +
+            "maze\n" +
+            "meadow\n" +
+            "mean\n" +
+            "measure\n" +
+            "meat\n" +
+            "mechanic\n" +
+            "medal\n" +
+            "media\n" +
+            "melody\n" +
+            "melt\n" +
+            "member\n" +
+            "memory\n" +
+            "mention\n" +
+            "menu\n" +
+            "mercy\n" +
+            "merge\n" +
+            "merit\n" +
+            "merry\n" +
+            "mesh\n" +
+            "message\n" +
+            "metal\n" +
+            "method\n" +
+            "middle\n" +
+            "midnight\n" +
+            "milk\n" +
+            "million\n" +
+            "mimic\n" +
+            "mind\n" +
+            "minimum\n" +
+            "minor\n" +
+            "minute\n" +
+            "miracle\n" +
+            "mirror\n" +
+            "misery\n" +
+            "miss\n" +
+            "mistake\n" +
+            "mix\n" +
+            "mixed\n" +
+            "mixture\n" +
+            "mobile\n" +
+            "model\n" +
+            "modify\n" +
+            "mom\n" +
+            "moment\n" +
+            "monitor\n" +
+            "monkey\n" +
+            "monster\n" +
+            "month\n" +
+            "moon\n" +
+            "moral\n" +
+            "more\n" +
+            "morning\n" +
+            "mosquito\n" +
+            "mother\n" +
+            "motion\n" +
+            "motor\n" +
+            "mountain\n" +
+            "mouse\n" +
+            "move\n" +
+            "movie\n" +
+            "much\n" +
+            "muffin\n" +
+            "mule\n" +
+            "multiply\n" +
+            "muscle\n" +
+            "museum\n" +
+            "mushroom\n" +
+            "music\n" +
+            "must\n" +
+            "mutual\n" +
+            "myself\n" +
+            "mystery\n" +
+            "myth\n" +
+            "naive\n" +
+            "name\n" +
+            "napkin\n" +
+            "narrow\n" +
+            "nasty\n" +
+            "nation\n" +
+            "nature\n" +
+            "near\n" +
+            "neck\n" +
+            "need\n" +
+            "negative\n" +
+            "neglect\n" +
+            "neither\n" +
+            "nephew\n" +
+            "nerve\n" +
+            "nest\n" +
+            "net\n" +
+            "network\n" +
+            "neutral\n" +
+            "never\n" +
+            "news\n" +
+            "next\n" +
+            "nice\n" +
+            "night\n" +
+            "noble\n" +
+            "noise\n" +
+            "nominee\n" +
+            "noodle\n" +
+            "normal\n" +
+            "north\n" +
+            "nose\n" +
+            "notable\n" +
+            "note\n" +
+            "nothing\n" +
+            "notice\n" +
+            "novel\n" +
+            "now\n" +
+            "nuclear\n" +
+            "number\n" +
+            "nurse\n" +
+            "nut\n" +
+            "oak\n" +
+            "obey\n" +
+            "object\n" +
+            "oblige\n" +
+            "obscure\n" +
+            "observe\n" +
+            "obtain\n" +
+            "obvious\n" +
+            "occur\n" +
+            "ocean\n" +
+            "october\n" +
+            "odor\n" +
+            "off\n" +
+            "offer\n" +
+            "office\n" +
+            "often\n" +
+            "oil\n" +
+            "okay\n" +
+            "old\n" +
+            "olive\n" +
+            "olympic\n" +
+            "omit\n" +
+            "once\n" +
+            "one\n" +
+            "onion\n" +
+            "online\n" +
+            "only\n" +
+            "open\n" +
+            "opera\n" +
+            "opinion\n" +
+            "oppose\n" +
+            "option\n" +
+            "orange\n" +
+            "orbit\n" +
+            "orchard\n" +
+            "order\n" +
+            "ordinary\n" +
+            "organ\n" +
+            "orient\n" +
+            "original\n" +
+            "orphan\n" +
+            "ostrich\n" +
+            "other\n" +
+            "outdoor\n" +
+            "outer\n" +
+            "output\n" +
+            "outside\n" +
+            "oval\n" +
+            "oven\n" +
+            "over\n" +
+            "own\n" +
+            "owner\n" +
+            "oxygen\n" +
+            "oyster\n" +
+            "ozone\n" +
+            "pact\n" +
+            "paddle\n" +
+            "page\n" +
+            "pair\n" +
+            "palace\n" +
+            "palm\n" +
+            "panda\n" +
+            "panel\n" +
+            "panic\n" +
+            "panther\n" +
+            "paper\n" +
+            "parade\n" +
+            "parent\n" +
+            "park\n" +
+            "parrot\n" +
+            "party\n" +
+            "pass\n" +
+            "patch\n" +
+            "path\n" +
+            "patient\n" +
+            "patrol\n" +
+            "pattern\n" +
+            "pause\n" +
+            "pave\n" +
+            "payment\n" +
+            "peace\n" +
+            "peanut\n" +
+            "pear\n" +
+            "peasant\n" +
+            "pelican\n" +
+            "pen\n" +
+            "penalty\n" +
+            "pencil\n" +
+            "people\n" +
+            "pepper\n" +
+            "perfect\n" +
+            "permit\n" +
+            "person\n" +
+            "pet\n" +
+            "phone\n" +
+            "photo\n" +
+            "phrase\n" +
+            "physical\n" +
+            "piano\n" +
+            "picnic\n" +
+            "picture\n" +
+            "piece\n" +
+            "pig\n" +
+            "pigeon\n" +
+            "pill\n" +
+            "pilot\n" +
+            "pink\n" +
+            "pioneer\n" +
+            "pipe\n" +
+            "pistol\n" +
+            "pitch\n" +
+            "pizza\n" +
+            "place\n" +
+            "planet\n" +
+            "plastic\n" +
+            "plate\n" +
+            "play\n" +
+            "please\n" +
+            "pledge\n" +
+            "pluck\n" +
+            "plug\n" +
+            "plunge\n" +
+            "poem\n" +
+            "poet\n" +
+            "point\n" +
+            "polar\n" +
+            "pole\n" +
+            "police\n" +
+            "pond\n" +
+            "pony\n" +
+            "pool\n" +
+            "popular\n" +
+            "portion\n" +
+            "position\n" +
+            "possible\n" +
+            "post\n" +
+            "potato\n" +
+            "pottery\n" +
+            "poverty\n" +
+            "powder\n" +
+            "power\n" +
+            "practice\n" +
+            "praise\n" +
+            "predict\n" +
+            "prefer\n" +
+            "prepare\n" +
+            "present\n" +
+            "pretty\n" +
+            "prevent\n" +
+            "price\n" +
+            "pride\n" +
+            "primary\n" +
+            "print\n" +
+            "priority\n" +
+            "prison\n" +
+            "private\n" +
+            "prize\n" +
+            "problem\n" +
+            "process\n" +
+            "produce\n" +
+            "profit\n" +
+            "program\n" +
+            "project\n" +
+            "promote\n" +
+            "proof\n" +
+            "property\n" +
+            "prosper\n" +
+            "protect\n" +
+            "proud\n" +
+            "provide\n" +
+            "public\n" +
+            "pudding\n" +
+            "pull\n" +
+            "pulp\n" +
+            "pulse\n" +
+            "pumpkin\n" +
+            "punch\n" +
+            "pupil\n" +
+            "puppy\n" +
+            "purchase\n" +
+            "purity\n" +
+            "purpose\n" +
+            "purse\n" +
+            "push\n" +
+            "put\n" +
+            "puzzle\n" +
+            "pyramid\n" +
+            "quality\n" +
+            "quantum\n" +
+            "quarter\n" +
+            "question\n" +
+            "quick\n" +
+            "quit\n" +
+            "quiz\n" +
+            "quote\n" +
+            "rabbit\n" +
+            "raccoon\n" +
+            "race\n" +
+            "rack\n" +
+            "radar\n" +
+            "radio\n" +
+            "rail\n" +
+            "rain\n" +
+            "raise\n" +
+            "rally\n" +
+            "ramp\n" +
+            "ranch\n" +
+            "random\n" +
+            "range\n" +
+            "rapid\n" +
+            "rare\n" +
+            "rate\n" +
+            "rather\n" +
+            "raven\n" +
+            "raw\n" +
+            "razor\n" +
+            "ready\n" +
+            "real\n" +
+            "reason\n" +
+            "rebel\n" +
+            "rebuild\n" +
+            "recall\n" +
+            "receive\n" +
+            "recipe\n" +
+            "record\n" +
+            "recycle\n" +
+            "reduce\n" +
+            "reflect\n" +
+            "reform\n" +
+            "refuse\n" +
+            "region\n" +
+            "regret\n" +
+            "regular\n" +
+            "reject\n" +
+            "relax\n" +
+            "release\n" +
+            "relief\n" +
+            "rely\n" +
+            "remain\n" +
+            "remember\n" +
+            "remind\n" +
+            "remove\n" +
+            "render\n" +
+            "renew\n" +
+            "rent\n" +
+            "reopen\n" +
+            "repair\n" +
+            "repeat\n" +
+            "replace\n" +
+            "report\n" +
+            "require\n" +
+            "rescue\n" +
+            "resemble\n" +
+            "resist\n" +
+            "resource\n" +
+            "response\n" +
+            "result\n" +
+            "retire\n" +
+            "retreat\n" +
+            "return\n" +
+            "reunion\n" +
+            "reveal\n" +
+            "review\n" +
+            "reward\n" +
+            "rhythm\n" +
+            "rib\n" +
+            "ribbon\n" +
+            "rice\n" +
+            "rich\n" +
+            "ride\n" +
+            "ridge\n" +
+            "rifle\n" +
+            "right\n" +
+            "rigid\n" +
+            "ring\n" +
+            "riot\n" +
+            "ripple\n" +
+            "risk\n" +
+            "ritual\n" +
+            "rival\n" +
+            "river\n" +
+            "road\n" +
+            "roast\n" +
+            "robot\n" +
+            "robust\n" +
+            "rocket\n" +
+            "romance\n" +
+            "roof\n" +
+            "rookie\n" +
+            "room\n" +
+            "rose\n" +
+            "rotate\n" +
+            "rough\n" +
+            "round\n" +
+            "route\n" +
+            "royal\n" +
+            "rubber\n" +
+            "rude\n" +
+            "rug\n" +
+            "rule\n" +
+            "run\n" +
+            "runway\n" +
+            "rural\n" +
+            "sad\n" +
+            "saddle\n" +
+            "sadness\n" +
+            "safe\n" +
+            "sail\n" +
+            "salad\n" +
+            "salmon\n" +
+            "salon\n" +
+            "salt\n" +
+            "salute\n" +
+            "same\n" +
+            "sample\n" +
+            "sand\n" +
+            "satisfy\n" +
+            "satoshi\n" +
+            "sauce\n" +
+            "sausage\n" +
+            "save\n" +
+            "say\n" +
+            "scale\n" +
+            "scan\n" +
+            "scare\n" +
+            "scatter\n" +
+            "scene\n" +
+            "scheme\n" +
+            "school\n" +
+            "science\n" +
+            "scissors\n" +
+            "scorpion\n" +
+            "scout\n" +
+            "scrap\n" +
+            "screen\n" +
+            "script\n" +
+            "scrub\n" +
+            "sea\n" +
+            "search\n" +
+            "season\n" +
+            "seat\n" +
+            "second\n" +
+            "secret\n" +
+            "section\n" +
+            "security\n" +
+            "seed\n" +
+            "seek\n" +
+            "segment\n" +
+            "select\n" +
+            "sell\n" +
+            "seminar\n" +
+            "senior\n" +
+            "sense\n" +
+            "sentence\n" +
+            "series\n" +
+            "service\n" +
+            "session\n" +
+            "settle\n" +
+            "setup\n" +
+            "seven\n" +
+            "shadow\n" +
+            "shaft\n" +
+            "shallow\n" +
+            "share\n" +
+            "shed\n" +
+            "shell\n" +
+            "sheriff\n" +
+            "shield\n" +
+            "shift\n" +
+            "shine\n" +
+            "ship\n" +
+            "shiver\n" +
+            "shock\n" +
+            "shoe\n" +
+            "shoot\n" +
+            "shop\n" +
+            "short\n" +
+            "shoulder\n" +
+            "shove\n" +
+            "shrimp\n" +
+            "shrug\n" +
+            "shuffle\n" +
+            "shy\n" +
+            "sibling\n" +
+            "sick\n" +
+            "side\n" +
+            "siege\n" +
+            "sight\n" +
+            "sign\n" +
+            "silent\n" +
+            "silk\n" +
+            "silly\n" +
+            "silver\n" +
+            "similar\n" +
+            "simple\n" +
+            "since\n" +
+            "sing\n" +
+            "siren\n" +
+            "sister\n" +
+            "situate\n" +
+            "six\n" +
+            "size\n" +
+            "skate\n" +
+            "sketch\n" +
+            "ski\n" +
+            "skill\n" +
+            "skin\n" +
+            "skirt\n" +
+            "skull\n" +
+            "slab\n" +
+            "slam\n" +
+            "sleep\n" +
+            "slender\n" +
+            "slice\n" +
+            "slide\n" +
+            "slight\n" +
+            "slim\n" +
+            "slogan\n" +
+            "slot\n" +
+            "slow\n" +
+            "slush\n" +
+            "small\n" +
+            "smart\n" +
+            "smile\n" +
+            "smoke\n" +
+            "smooth\n" +
+            "snack\n" +
+            "snake\n" +
+            "snap\n" +
+            "sniff\n" +
+            "snow\n" +
+            "soap\n" +
+            "soccer\n" +
+            "social\n" +
+            "sock\n" +
+            "soda\n" +
+            "soft\n" +
+            "solar\n" +
+            "soldier\n" +
+            "solid\n" +
+            "solution\n" +
+            "solve\n" +
+            "someone\n" +
+            "song\n" +
+            "soon\n" +
+            "sorry\n" +
+            "sort\n" +
+            "soul\n" +
+            "sound\n" +
+            "soup\n" +
+            "source\n" +
+            "south\n" +
+            "space\n" +
+            "spare\n" +
+            "spatial\n" +
+            "spawn\n" +
+            "speak\n" +
+            "special\n" +
+            "speed\n" +
+            "spell\n" +
+            "spend\n" +
+            "sphere\n" +
+            "spice\n" +
+            "spider\n" +
+            "spike\n" +
+            "spin\n" +
+            "spirit\n" +
+            "split\n" +
+            "spoil\n" +
+            "sponsor\n" +
+            "spoon\n" +
+            "sport\n" +
+            "spot\n" +
+            "spray\n" +
+            "spread\n" +
+            "spring\n" +
+            "spy\n" +
+            "square\n" +
+            "squeeze\n" +
+            "squirrel\n" +
+            "stable\n" +
+            "stadium\n" +
+            "staff\n" +
+            "stage\n" +
+            "stairs\n" +
+            "stamp\n" +
+            "stand\n" +
+            "start\n" +
+            "state\n" +
+            "stay\n" +
+            "steak\n" +
+            "steel\n" +
+            "stem\n" +
+            "step\n" +
+            "stereo\n" +
+            "stick\n" +
+            "still\n" +
+            "sting\n" +
+            "stock\n" +
+            "stomach\n" +
+            "stone\n" +
+            "stool\n" +
+            "story\n" +
+            "stove\n" +
+            "strategy\n" +
+            "street\n" +
+            "strike\n" +
+            "strong\n" +
+            "struggle\n" +
+            "student\n" +
+            "stuff\n" +
+            "stumble\n" +
+            "style\n" +
+            "subject\n" +
+            "submit\n" +
+            "subway\n" +
+            "success\n" +
+            "such\n" +
+            "sudden\n" +
+            "suffer\n" +
+            "sugar\n" +
+            "suggest\n" +
+            "suit\n" +
+            "summer\n" +
+            "sun\n" +
+            "sunny\n" +
+            "sunset\n" +
+            "super\n" +
+            "supply\n" +
+            "supreme\n" +
+            "sure\n" +
+            "surface\n" +
+            "surge\n" +
+            "surprise\n" +
+            "surround\n" +
+            "survey\n" +
+            "suspect\n" +
+            "sustain\n" +
+            "swallow\n" +
+            "swamp\n" +
+            "swap\n" +
+            "swarm\n" +
+            "swear\n" +
+            "sweet\n" +
+            "swift\n" +
+            "swim\n" +
+            "swing\n" +
+            "switch\n" +
+            "sword\n" +
+            "symbol\n" +
+            "symptom\n" +
+            "syrup\n" +
+            "system\n" +
+            "table\n" +
+            "tackle\n" +
+            "tag\n" +
+            "tail\n" +
+            "talent\n" +
+            "talk\n" +
+            "tank\n" +
+            "tape\n" +
+            "target\n" +
+            "task\n" +
+            "taste\n" +
+            "tattoo\n" +
+            "taxi\n" +
+            "teach\n" +
+            "team\n" +
+            "tell\n" +
+            "ten\n" +
+            "tenant\n" +
+            "tennis\n" +
+            "tent\n" +
+            "term\n" +
+            "test\n" +
+            "text\n" +
+            "thank\n" +
+            "that\n" +
+            "theme\n" +
+            "then\n" +
+            "theory\n" +
+            "there\n" +
+            "they\n" +
+            "thing\n" +
+            "this\n" +
+            "thought\n" +
+            "three\n" +
+            "thrive\n" +
+            "throw\n" +
+            "thumb\n" +
+            "thunder\n" +
+            "ticket\n" +
+            "tide\n" +
+            "tiger\n" +
+            "tilt\n" +
+            "timber\n" +
+            "time\n" +
+            "tiny\n" +
+            "tip\n" +
+            "tired\n" +
+            "tissue\n" +
+            "title\n" +
+            "toast\n" +
+            "tobacco\n" +
+            "today\n" +
+            "toddler\n" +
+            "toe\n" +
+            "together\n" +
+            "toilet\n" +
+            "token\n" +
+            "tomato\n" +
+            "tomorrow\n" +
+            "tone\n" +
+            "tongue\n" +
+            "tonight\n" +
+            "tool\n" +
+            "tooth\n" +
+            "top\n" +
+            "topic\n" +
+            "topple\n" +
+            "torch\n" +
+            "tornado\n" +
+            "tortoise\n" +
+            "toss\n" +
+            "total\n" +
+            "tourist\n" +
+            "toward\n" +
+            "tower\n" +
+            "town\n" +
+            "toy\n" +
+            "track\n" +
+            "trade\n" +
+            "traffic\n" +
+            "tragic\n" +
+            "train\n" +
+            "transfer\n" +
+            "trap\n" +
+            "trash\n" +
+            "travel\n" +
+            "tray\n" +
+            "treat\n" +
+            "tree\n" +
+            "trend\n" +
+            "trial\n" +
+            "tribe\n" +
+            "trick\n" +
+            "trigger\n" +
+            "trim\n" +
+            "trip\n" +
+            "trophy\n" +
+            "trouble\n" +
+            "truck\n" +
+            "true\n" +
+            "truly\n" +
+            "trumpet\n" +
+            "trust\n" +
+            "truth\n" +
+            "try\n" +
+            "tube\n" +
+            "tuition\n" +
+            "tumble\n" +
+            "tuna\n" +
+            "tunnel\n" +
+            "turkey\n" +
+            "turn\n" +
+            "turtle\n" +
+            "twelve\n" +
+            "twenty\n" +
+            "twice\n" +
+            "twin\n" +
+            "twist\n" +
+            "two\n" +
+            "type\n" +
+            "typical\n" +
+            "ugly\n" +
+            "umbrella\n" +
+            "unable\n" +
+            "unaware\n" +
+            "uncle\n" +
+            "uncover\n" +
+            "under\n" +
+            "undo\n" +
+            "unfair\n" +
+            "unfold\n" +
+            "unhappy\n" +
+            "uniform\n" +
+            "unique\n" +
+            "unit\n" +
+            "universe\n" +
+            "unknown\n" +
+            "unlock\n" +
+            "until\n" +
+            "unusual\n" +
+            "unveil\n" +
+            "update\n" +
+            "upgrade\n" +
+            "uphold\n" +
+            "upon\n" +
+            "upper\n" +
+            "upset\n" +
+            "urban\n" +
+            "urge\n" +
+            "usage\n" +
+            "use\n" +
+            "used\n" +
+            "useful\n" +
+            "useless\n" +
+            "usual\n" +
+            "utility\n" +
+            "vacant\n" +
+            "vacuum\n" +
+            "vague\n" +
+            "valid\n" +
+            "valley\n" +
+            "valve\n" +
+            "van\n" +
+            "vanish\n" +
+            "vapor\n" +
+            "various\n" +
+            "vast\n" +
+            "vault\n" +
+            "vehicle\n" +
+            "velvet\n" +
+            "vendor\n" +
+            "venture\n" +
+            "venue\n" +
+            "verb\n" +
+            "verify\n" +
+            "version\n" +
+            "very\n" +
+            "vessel\n" +
+            "veteran\n" +
+            "viable\n" +
+            "vibrant\n" +
+            "vicious\n" +
+            "victory\n" +
+            "video\n" +
+            "view\n" +
+            "village\n" +
+            "vintage\n" +
+            "violin\n" +
+            "virtual\n" +
+            "virus\n" +
+            "visa\n" +
+            "visit\n" +
+            "visual\n" +
+            "vital\n" +
+            "vivid\n" +
+            "vocal\n" +
+            "voice\n" +
+            "void\n" +
+            "volcano\n" +
+            "volume\n" +
+            "vote\n" +
+            "voyage\n" +
+            "wage\n" +
+            "wagon\n" +
+            "wait\n" +
+            "walk\n" +
+            "wall\n" +
+            "walnut\n" +
+            "want\n" +
+            "warfare\n" +
+            "warm\n" +
+            "warrior\n" +
+            "wash\n" +
+            "wasp\n" +
+            "waste\n" +
+            "water\n" +
+            "wave\n" +
+            "way\n" +
+            "wealth\n" +
+            "weapon\n" +
+            "wear\n" +
+            "weasel\n" +
+            "weather\n" +
+            "web\n" +
+            "wedding\n" +
+            "weekend\n" +
+            "weird\n" +
+            "welcome\n" +
+            "west\n" +
+            "wet\n" +
+            "whale\n" +
+            "what\n" +
+            "wheat\n" +
+            "wheel\n" +
+            "when\n" +
+            "where\n" +
+            "whip\n" +
+            "whisper\n" +
+            "wide\n" +
+            "width\n" +
+            "wife\n" +
+            "wild\n" +
+            "will\n" +
+            "win\n" +
+            "window\n" +
+            "wine\n" +
+            "wing\n" +
+            "wink\n" +
+            "winner\n" +
+            "winter\n" +
+            "wire\n" +
+            "wisdom\n" +
+            "wise\n" +
+            "wish\n" +
+            "witness\n" +
+            "wolf\n" +
+            "woman\n" +
+            "wonder\n" +
+            "wood\n" +
+            "wool\n" +
+            "word\n" +
+            "work\n" +
+            "world\n" +
+            "worry\n" +
+            "worth\n" +
+            "wrap\n" +
+            "wreck\n" +
+            "wrestle\n" +
+            "wrist\n" +
+            "write\n" +
+            "wrong\n" +
+            "yard\n" +
+            "year\n" +
+            "yellow\n" +
+            "you\n" +
+            "young\n" +
+            "youth\n" +
+            "zebra\n" +
+            "zero\n" +
+            "zone\n" +
+            "zoo\n";
+
+    private static final String BIP39_ENGLISH_RESOURCE_NAME = "mnemonic/wordlist/english.txt";
+//    private static final String BIP39_ENGLISH_RESOURCE_NAME = "/com/showpay/libasset/mnemonic/wordlist/english.txt";
+    private static final String BIP39_ENGLISH_SHA256 = "ad90bf3beb7b0eb7e5acd74727dc0da96e0a280a258354e7293fb7e211ac03db";
+
+    /** UNIX time for when the BIP39 standard was finalised. This can be used as a default seed birthday. */
+    public static long BIP39_STANDARDISATION_TIME_SECS = 1381276800;
+
+    private static final int PBKDF2_ROUNDS = 2048;
+
+    public static MnemonicCode INSTANCE;
+
+    static {
+        try {
+            INSTANCE = new MnemonicCode();
+        } catch (FileNotFoundException e) {
+            // We expect failure on Android. The developer has to set INSTANCE themselves.
+            if (!Utils.isAndroidRuntime())
+                log.error("Could not find word list", e);
+        } catch (IOException e) {
+            log.error("Failed to load word list", e);
+        }
+    }
+
+    /** Initialise from the included word list. Won't work on Android. */
+    public MnemonicCode() throws IOException {
+        this(openDefaultWords(), BIP39_ENGLISH_SHA256);
+    }
+
+    private static InputStream openDefaultWords() throws IOException {
+        InputStream stream = MnemonicCode.class.getResourceAsStream(BIP39_ENGLISH_RESOURCE_NAME);
+        if (stream == null){
+//            throw new FileNotFoundException(BIP39_ENGLISH_RESOURCE_NAME);
+            stream = new ByteArrayInputStream(wordStrs.getBytes("UTF-8"));
+        }
+
+
+        return stream;
+    }
+
+    /**
+     * Creates an MnemonicCode object, initializing with words read from the supplied input stream.  If a wordListDigest
+     * is supplied the digest of the words will be checked.
+     */
+    public MnemonicCode(InputStream wordstream, String wordListDigest) throws IOException, IllegalArgumentException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(wordstream, "UTF-8"));
+        this.wordList = new ArrayList<String>(2048);
+        MessageDigest md = Sha256Hash.newDigest();
+        String word;
+        while ((word = br.readLine()) != null) {
+            md.update(word.getBytes());
+            this.wordList.add(word);
+        }
+        br.close();
+
+        if (this.wordList.size() != 2048)
+            throw new IllegalArgumentException("input stream did not contain 2048 words");
+
+        // If a wordListDigest is supplied check to make sure it matches.
+        if (wordListDigest != null) {
+            byte[] digest = md.digest();
+            String hexdigest = HEX.encode(digest);
+            if (!hexdigest.equals(wordListDigest))
+                throw new IllegalArgumentException("wordlist digest mismatch");
+        }
+    }
+
+    /**
+     * Gets the word list this code uses.
+     */
+    public List<String> getWordList() {
+        return wordList;
+    }
+
+    /**
+     * Convert mnemonic word list to seed.
+     */
+    public static byte[] toSeed(List<String> words, String passphrase) {
+
+        // To create binary seed from mnemonic, we use PBKDF2 function
+        // with mnemonic sentence (in UTF-8) used as a password and
+        // string "mnemonic" + passphrase (again in UTF-8) used as a
+        // salt. Iteration count is set to 4096 and HMAC-SHA512 is
+        // used as a pseudo-random function. Desired length of the
+        // derived key is 512 bits (= 64 bytes).
+        //
+        String pass = Utils.join(words);
+        String salt = "mnemonic" + passphrase;
+
+        final Stopwatch watch = Stopwatch.createStarted();
+        byte[] seed = PBKDF2SHA512.derive(pass, salt, PBKDF2_ROUNDS, 64);
+        watch.stop();
+        log.info("PBKDF2 took {}", watch);
+        return seed;
+    }
+
+    /**
+     * Convert mnemonic word list to original entropy value.
+     */
+    public byte[] toEntropy(List<String> words) throws MnemonicException.MnemonicLengthException, MnemonicException.MnemonicWordException, MnemonicException.MnemonicChecksumException {
+        if (words.size() % 3 > 0)
+            throw new MnemonicException.MnemonicLengthException("Word list size must be multiple of three words.");
+
+        if (words.size() == 0)
+            throw new MnemonicException.MnemonicLengthException("Word list is empty.");
+
+        // Look up all the words in the list and construct the
+        // concatenation of the original entropy and the checksum.
+        //
+        int concatLenBits = words.size() * 11;
+        boolean[] concatBits = new boolean[concatLenBits];
+        int wordindex = 0;
+        for (String word : words) {
+            // Find the words index in the wordlist.
+            int ndx = Collections.binarySearch(this.wordList, word);
+            if (ndx < 0)
+                throw new MnemonicException.MnemonicWordException(word);
+
+            // Set the next 11 bits to the value of the index.
+            for (int ii = 0; ii < 11; ++ii)
+                concatBits[(wordindex * 11) + ii] = (ndx & (1 << (10 - ii))) != 0;
+            ++wordindex;
+        }        
+
+        int checksumLengthBits = concatLenBits / 33;
+        int entropyLengthBits = concatLenBits - checksumLengthBits;
+
+        // Extract original entropy as bytes.
+        byte[] entropy = new byte[entropyLengthBits / 8];
+        for (int ii = 0; ii < entropy.length; ++ii)
+            for (int jj = 0; jj < 8; ++jj)
+                if (concatBits[(ii * 8) + jj])
+                    entropy[ii] |= 1 << (7 - jj);
+
+        // Take the digest of the entropy.
+        byte[] hash = Sha256Hash.hash(entropy);
+        boolean[] hashBits = bytesToBits(hash);
+
+        // Check all the checksum bits.
+        for (int i = 0; i < checksumLengthBits; ++i)
+            if (concatBits[entropyLengthBits + i] != hashBits[i])
+                throw new MnemonicException.MnemonicChecksumException();
+
+        return entropy;
+    }
+
+    /**
+     * Convert entropy data to mnemonic word list.
+     */
+    public List<String> toMnemonic(byte[] entropy) throws MnemonicException.MnemonicLengthException {
+        if (entropy.length % 4 > 0)
+            throw new MnemonicException.MnemonicLengthException("Entropy length not multiple of 32 bits.");
+
+        if (entropy.length == 0)
+            throw new MnemonicException.MnemonicLengthException("Entropy is empty.");
+
+        // We take initial entropy of ENT bits and compute its
+        // checksum by taking first ENT / 32 bits of its SHA256 hash.
+
+        byte[] hash = Sha256Hash.hash(entropy);
+        boolean[] hashBits = bytesToBits(hash);
+        
+        boolean[] entropyBits = bytesToBits(entropy);
+        int checksumLengthBits = entropyBits.length / 32;
+
+        // We append these bits to the end of the initial entropy. 
+        boolean[] concatBits = new boolean[entropyBits.length + checksumLengthBits];
+        System.arraycopy(entropyBits, 0, concatBits, 0, entropyBits.length);
+        System.arraycopy(hashBits, 0, concatBits, entropyBits.length, checksumLengthBits);
+
+        // Next we take these concatenated bits and split them into
+        // groups of 11 bits. Each group encodes number from 0-2047
+        // which is a position in a wordlist.  We convert numbers into
+        // words and use joined words as mnemonic sentence.
+
+        ArrayList<String> words = new ArrayList<String>();
+        int nwords = concatBits.length / 11;
+        for (int i = 0; i < nwords; ++i) {
+            int index = 0;
+            for (int j = 0; j < 11; ++j) {
+                index <<= 1;
+                if (concatBits[(i * 11) + j])
+                    index |= 0x1;
+            }
+            words.add(this.wordList.get(index));
+        }
+            
+        return words;        
+    }
+
+    /**
+     * Check to see if a mnemonic word list is valid.
+     */
+    public void check(List<String> words) throws MnemonicException {
+        toEntropy(words);
+    }
+
+    private static boolean[] bytesToBits(byte[] data) {
+        boolean[] bits = new boolean[data.length * 8];
+        for (int i = 0; i < data.length; ++i)
+            for (int j = 0; j < 8; ++j)
+                bits[(i * 8) + j] = (data[i] & (1 << (7 - j))) != 0;
+        return bits;
+    }
+}
